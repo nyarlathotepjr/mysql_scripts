@@ -39,7 +39,47 @@ class MySQLClient(object):
 		sql = "show global status"
 		status = self.cursor.execute(sql)
 		gstatus = dict(self.cursor.fetchall())
+		nslist = ['Compression','Flashcache_enabled','Slave_running','Innodb_have_atomic_builtins','Rpl_status','Ssl_session_cache_mode','Ssl_cipher','Ssl_cipher_list','Ssl_version']
+		for iter in gstatus:
+		  if iter not in nslist: 
+		   float (gstatus[iter])
+
 		return gstatus
+
+	def global_variables(self):
+		sql = "show global variables"
+		variables = self.cursor.execute(sql)
+		gvariables = dict(self.cursor.fetchall())
+		return gvariables
+	
+	def total_memory(self):
+		gvar = self.global_variables()
+		mem1 = float(gvar['key_buffer_size']) + float(gvar['query_cache_size']) + float(gvar['tmp_table_size']) + float(gvar['innodb_buffer_pool_size']) + float(gvar['innodb_additional_mem_pool_size']) + float(gvar['innodb_log_buffer_size']) + float(gvar['max_connections']) 
+		 
+		mem2 = float(gvar['sort_buffer_size']) + float(gvar['read_buffer_size']) + float(gvar['read_rnd_buffer_size']) + float(gvar['join_buffer_size']) + float(gvar['thread_stack']) + float(gvar['binlog_cache_size']) 
+		
+		tmem = (mem1 + mem2)/1024/1024 
+		return tmem   
+
+	def keycache_hitrate(self):
+		gstat = self.global_status()
+		nozero = float(gstat['Key_read_requests'])
+		if (nozero == 0):
+		 return 'Key_read_requests is 0' 
+		else:
+		 kchitr = (1-gstat['Key_reads']/gstat['Key_read_requests'])*100
+		 return kchitr
+	
+	def percent_full_table_scans(self):
+		gstat = self.global_status()
+		nozero = gstat['Handler_read_rnd_next']
+                if (nozero == 0):
+                 return 'handler_read_rnd_next is 0'
+                else:
+                 hand1 = gstat['Handler_read_rnd_next'] + gstat['Handler_read_rnd']
+		 hand2 = gstat['Handler_read_rnd_next'] + gstat['Handler_read_rnd'] + gstat['Handler_read_first'] + gstat['Handler_read_next'] + gstat['Handler_read_key'] + gstat['Handler_read_prev']
+		 perfull = (1-(float(hand1)/float(hand2)))*100
+                 return perfull
 
 
 	def innodb_waitfree(self):
@@ -72,4 +112,11 @@ class MySQLClient(object):
 		slsn = lsn[3]
 		mbpermin = (float(slsn) - float(flsn))/ 1024.0 / 1024.0
 		return mbpermin
+
+	def innodb_buffer_pool_hitrate(self):
+		gstat = self.global_status()
+		bphitr = (1-float(gstat['Innodb_buffer_pool_reads'])/float(gstat['Innodb_buffer_pool_read_requests']))*100 
+		return bphitr
+	
+	
 
