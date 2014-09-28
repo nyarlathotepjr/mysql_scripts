@@ -16,7 +16,8 @@ for i in innodb_l:
 
 flsn =  lsn[3] 
 
-#cursor.execute("select sleep(60)")
+cursor.execute("SET wait_timeout = 120")
+
 time.sleep(60) 
 cursor.execute("SHOW /*!50000 ENGINE*/ INNODB STATUS")
 
@@ -34,3 +35,6 @@ mbpermin = (float(slsn) - float(flsn))/ 1024.0 / 1024.0
 
 print 'The MB written per minute to the redo logs is: %s' % mbpermin
 
+hour_redo_size = float(mbpermin) * 60
+
+print 'The redo log size for an hour of writes in MB is: %s' % hour_redo_size
